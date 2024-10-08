@@ -1,18 +1,19 @@
 
 import sys
 import os 
-from scanner import Scanner
+
 import typing
 
-class Intrepreter:
+class Interpreter:
     def __init__(self):
         self.haderror = False 
         
     def run(self, string):
-        scanner = Scanner(string, self)
-        tokens = scanner.scanTokens()
+        from scanner import Scanner
+        scan= Scanner(string, self)
+        tokens = scan.scanTokens()
         for token in tokens:
-            sys.stdout.write(str(token))
+            sys.stdout.write(f'{str(token)}\n')
             sys.stdout.flush()
 
     
@@ -28,7 +29,7 @@ class Intrepreter:
             bytecontent = file.read()
         string = bytecontent.decode(os.device_encoding(0) or 'utf-8')
         self.run(string)
-        if self.haderror:
+        if self.haderror: 
             sys.exit(65)
 
     def runPrompt(self):
@@ -36,8 +37,7 @@ class Intrepreter:
             sys.stdout.write(">>> ")
             sys.stdout.flush()
             line = sys.stdin.readline().strip()
-            if not line:
-                break
+            if not line: break
             self.run(line)
             self.haderror = False 
             sys.stdout.write(line + '\n')
@@ -55,5 +55,5 @@ class Intrepreter:
 
 
 if __name__ == '__main__':
-    interpreter = Intrepreter()
+    interpreter = Interpreter()
     interpreter.interpret()
