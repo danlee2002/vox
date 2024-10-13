@@ -1,4 +1,4 @@
-from scanner import Tokens
+from tokens import Tokens, TokenType
 from typing import Any
 from abc import ABC, abstractmethod
 

@@ -1,25 +1,35 @@
 
 import sys
 import os 
-
-import typing
-
+from typing import Optional
+from tokens import Tokens, TokenType
+from AstPrinter import AstPrinter
 class Interpreter:
     def __init__(self):
         self.haderror = False 
         
     def run(self, string):
         from scanner import Scanner
+        from parser import Parser
         scan= Scanner(string, self)
         tokens = scan.scanTokens()
-        for token in tokens:
-            sys.stdout.write(f'{str(token)}\n')
-            sys.stdout.flush()
-
-    
-    def error(self, line: int , message: str):
-        self.report(line, "",message)
+        parser = Parser(tokens)
+        expression = parser.parse()
+        if self.haderror:
+            return 
+        printer = AstPrinter()
+        sys.stdout.write(f'{printer.print(expression)}\n')
         
+
+    def error(self, line: int, message: str):
+        self.report(line, "",message)
+
+    def parse_error(self, token: Tokens, message: str):
+        if token.type == TokenType.EOF:
+            self.report(token.line, ' at end', message)
+        else:
+            self.report(token.line, f'at "{token.lexme}"', message)
+
     def report(self,line: int, where: str, message: str):
         sys.stdout.write(f'[line {line}] Error {where}" {message}')
         self.haderror = True
