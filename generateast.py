@@ -6,12 +6,12 @@ def define_ast(output_dir: str, base_name: str, types: List[str]):
     path = os.path.join(output_dir, base_name + '.py')
     
     with open(path, 'w', encoding='utf-8') as writer:
-        writer.write(f'from scanner import Tokens\n')
-        writer.write(f'from typing import Any\n') 
+        writer.write(f'from tokens import Tokens\n')
+        writer.write(f'from typing import Any, Union\n') 
         writer.write(f'from abc import ABC, abstractmethod\n\n')
         writer.write(f'class Expr(ABC):\n')
         writer.write(f'\t@abstractmethod\n')
-        writer.write(f'\tdef accept(self, visitor: "AstPrinter") -> str:\n')
+        writer.write(f'\tdef accept(self, visitor: "Any") -> str:\n')
         writer.write(f'\t\tpass\n') 
 
         for type_def in types:
@@ -31,7 +31,7 @@ def define_type(writer, base_name: str, class_name: str, field_list: str):
     writer.write('\n')
     
     # Define the accept method
-    writer.write(f'\tdef accept(self, visitor: "AstPrinter")-> str:\n')
+    writer.write(f'\tdef accept(self, visitor: "Any")-> str:\n')
     writer.write(f'\t\treturn visitor.visit_{class_name.lower()}(self)\n') 
     writer.write('\n')
 
@@ -43,8 +43,8 @@ if __name__ == '__main__':
     directory = sys.argv[1]
     
     define_ast(directory, 'Expr', [
-        'Binary   : LEFT Expr, OPERATOR Tokens, RIGHT Expr',
-        'Grouping : EXPRESSION Expr',
+        'Binary   : LEFT Union[Expr,None], OPERATOR Tokens, RIGHT Union[Expr,None]',
+        'Grouping : EXPRESSION Union[Expr,None]',
         'Literal  : VALUE Any', 
-        'Unary    : OPERATOR Tokens, RIGHT Expr'
+        'Unary    : OPERATOR Tokens, RIGHT Union[Expr,None]'
     ])

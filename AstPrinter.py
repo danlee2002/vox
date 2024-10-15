@@ -1,8 +1,8 @@
 from Expr import Expr, Binary, Grouping, Literal, Unary
-from typing import Any
+from typing import Any, Union
 from tokens import TokenType, Tokens
 class AstPrinter:
-    def print(self, expr: Expr) -> str:
+    def print(self, expr: Union[Expr, Any]) -> str:
         return expr.accept(self)
 
     def visit_binary(self, expr: Binary) -> str:
@@ -19,10 +19,13 @@ class AstPrinter:
     def visit_unary(self, expr: Unary) -> str:
         return self.parenthesize(expr.operator.lexme, expr.right)
 
-    def parenthesize(self, name: Any, *exprs: Expr) -> str:
+    def parenthesize(self, name: Any, *exprs: Union[Expr, None]) -> str:
         builder = []
         builder.append(f'({name}')
         for expr in exprs:
+            if not expr:
+                print("Expression Cannot Be None")
+                break
             builder.append(f' {expr.accept(self)}')
         builder.append(')')
         return ''.join(builder)

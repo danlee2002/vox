@@ -1,8 +1,9 @@
 
 import sys
 import os 
-from typing import Optional
+from typing import Union, Any
 from tokens import Tokens, TokenType
+import Expr 
 from AstPrinter import AstPrinter
 class Interpreter:
     def __init__(self):
@@ -15,12 +16,14 @@ class Interpreter:
         tokens = scan.scanTokens()
         parser = Parser(tokens)
         expression = parser.parse()
+        print(type(expression))
+        result = self.evaluate(expression)
         if self.haderror:
             return 
         printer = AstPrinter()
+        print(result)
         sys.stdout.write(f'{printer.print(expression)}\n')
         
-
     def error(self, line: int, message: str):
         self.report(line, "",message)
 
@@ -62,6 +65,64 @@ class Interpreter:
             self.runFile(sys.argv[1])
         else:
             self.runPrompt()
+
+    def visit_literal(self, expr: Expr.Literal):
+        return expr.value
+    
+    def visit_grouping(self, expr: Expr.Grouping):
+        return self.evaluate(expr)
+    
+    def visit_unary(self, expr: Expr.Unary):
+        right = self.evaluate(expr.right)
+        match expr.operator.type:
+            case TokenType.MINUS:
+                return -float(right)
+            case TokenType.BANG:
+                return not self.is_truthy(right)
+
+        return None 
+    
+    def visit_binary(self, expr: Expr.Binary):
+        left = self.evaluate(expr.left)
+        right = self.evaluate(expr.right)
+        print(left)
+        print(right)
+        match expr.operator.type:
+            case TokenType.MINUS:
+                return float(left) - float(right)
+            case TokenType.PLUS:
+                return left + right
+            case TokenType.SLASH:
+                return left/right
+            case TokenType.STAR:
+                return left * right 
+            case TokenType.GREATER:
+                return left > right
+            case TokenType.GREATER_EQUAL:
+                return left >= right
+            case TokenType.LESS:
+                return left < right
+            case TokenType.LESS_EQUAL:
+                return left <= right
+            case TokenType.BANG_EQUAL:
+                return left != right
+            case TokenType.EQUAL_EQUAL:
+                return left == right 
+            case _:
+                return None 
+                
+    def is_truthy(self, object) -> bool:
+        if object is None:
+            return False 
+        if isinstance(object, bool):
+            return object
+        return True
+    
+    def evaluate(self, expr: Union[Expr.Expr,None]) -> Any:
+        if not expr:
+            return None 
+        return expr.accept(self)
+
 
 
 if __name__ == '__main__':
