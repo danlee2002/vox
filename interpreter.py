@@ -1,76 +1,25 @@
-
-import sys
-import os 
+from ast import Expression
+from tokens import TokenType, Tokens
+import Expr
 from typing import Union, Any
-from tokens import Tokens, TokenType
-import Expr 
-from AstPrinter import AstPrinter
+import sys
+
+class RuntimeException(Exception):
+    def __init__(self, token: Tokens, message: str):
+        super().__init__(message)
+        self.token = token
+
 class Interpreter:
-    def __init__(self):
-        self.haderror = False 
-        
-    def run(self, string):
-        from scanner import Scanner
-        from parser import Parser
-        scan= Scanner(string, self)
-        tokens = scan.scanTokens()
-        parser = Parser(tokens)
-        expression = parser.parse()
-        print(type(expression))
-        result = self.evaluate(expression)
-        if self.haderror:
-            return 
-        printer = AstPrinter()
-        print(result)
-        sys.stdout.write(f'{printer.print(expression)}\n')
-        
-    def error(self, line: int, message: str):
-        self.report(line, "",message)
-
-    def parse_error(self, token: Tokens, message: str):
-        if token.type == TokenType.EOF:
-            self.report(token.line, ' at end', message)
-        else:
-            self.report(token.line, f'at "{token.lexme}"', message)
-
-    def report(self,line: int, where: str, message: str):
-        sys.stdout.write(f'[line {line}] Error {where}" {message}')
-        self.haderror = True
-  
-    def runFile(self, scriptname: str):
-        with open(scriptname, 'rb') as file:
-            bytecontent = file.read()
-        string = bytecontent.decode(os.device_encoding(0) or 'utf-8')
-        self.run(string)
-        if self.haderror: 
-            sys.exit(65)
-
-    def runPrompt(self):
-        while True:
-            sys.stdout.write(">>> ")
-            sys.stdout.flush()
-            line = sys.stdin.readline().strip()
-            if not line: break
-            self.run(line)
-            self.haderror = False 
-            sys.stdout.write(line + '\n')
-            sys.stdout.flush()
-                
-    def interpret(self):
-        n = len(sys.argv) - 1
-        if n > 1:
-            sys.stdout.write("Vox: Script")
-            sys.exit(64)
-        elif n == 1:
-            self.runFile(sys.argv[1])
-        else:
-            self.runPrompt()
-
+    def evaluate(self, expr: Union[Expr.Expr,None]) -> Any:
+        if not expr:
+            return None 
+        return expr.accept(self)
+    
     def visit_literal(self, expr: Expr.Literal):
         return expr.value
     
     def visit_grouping(self, expr: Expr.Grouping):
-        return self.evaluate(expr)
+        return self.evaluate(expr.expression)
     
     def visit_unary(self, expr: Expr.Unary):
         right = self.evaluate(expr.right)
@@ -79,52 +28,66 @@ class Interpreter:
                 return -float(right)
             case TokenType.BANG:
                 return not self.is_truthy(right)
-
         return None 
-    
+
     def visit_binary(self, expr: Expr.Binary):
         left = self.evaluate(expr.left)
         right = self.evaluate(expr.right)
-        print(left)
-        print(right)
         match expr.operator.type:
             case TokenType.MINUS:
+                self.check_binary(expr.operator, left, right)
                 return float(left) - float(right)
             case TokenType.PLUS:
+                self.check_addition(expr.operator, left, right)
                 return left + right
             case TokenType.SLASH:
+                self.check_binary(expr.operator, left, right)
                 return left/right
             case TokenType.STAR:
+                self.check_binary(expr.operator, left, right)
                 return left * right 
             case TokenType.GREATER:
+                self.check_binary(expr.operator, left, right)
                 return left > right
             case TokenType.GREATER_EQUAL:
+                self.check_binary(expr.operator, left, right)
                 return left >= right
             case TokenType.LESS:
+                self.check_binary(expr.operator, left, right)
                 return left < right
             case TokenType.LESS_EQUAL:
+                self.check_binary(expr.operator, left, right)
                 return left <= right
             case TokenType.BANG_EQUAL:
+                self.check_binary(expr.operator, left, right)
                 return left != right
             case TokenType.EQUAL_EQUAL:
                 return left == right 
             case _:
                 return None 
+    
+    def check_binary(self, operator: Tokens, left: Any, right: Any):
+        if isinstance(left, float) and isinstance(right, float):
+            return 
+        raise RuntimeException(operator, f'Runtime Exception Operator "{operator.lexme}": Operands must be Number.')
                 
+    def check_addition(self, operator: Tokens, left: Any, right: Any):
+        if isinstance(left, (str, float)) and type(left) == type(right):
+            return 
+        raise RuntimeException(operator, f'Runtime Exception Operator "{operator.lexme}": Operands must be both Number or String.')
+    
     def is_truthy(self, object) -> bool:
         if object is None:
             return False 
         if isinstance(object, bool):
             return object
         return True
-    
-    def evaluate(self, expr: Union[Expr.Expr,None]) -> Any:
-        if not expr:
-            return None 
-        return expr.accept(self)
 
-
-
-if __name__ == '__main__':
-    interpreter = Interpreter()
-    interpreter.interpret()
+    def interpret(self, expr: Expression, Lox):
+        try:
+            value = self.evaluate(expr)
+            sys.stdout.write(f'{value}\n')
+        except RuntimeException as e:
+            Lox.run_time_error(e)
+            
+            

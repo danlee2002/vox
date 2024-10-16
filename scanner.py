@@ -1,15 +1,15 @@
 
-from interpreter import Interpreter
-import interpreter
+from lox import Lox
+import lox
 from tokens import Tokens, TokenType
 class Scanner:
-    def __init__(self, source: str, interpreter: Interpreter):
+    def __init__(self, source: str, lox: Lox):
         self.source = source
         self.tokens: list[Tokens] = []
         self.start = 0
         self.current = 0
         self.line = 1
-        self.interpreter = interpreter
+        self.lox = lox
         self.keywords = {
             'and': TokenType.AND,
             'class': TokenType.CLASS,
@@ -65,22 +65,22 @@ class Scanner:
             case '\r': pass 
             case '\t': pass 
             case '\n': self.line+=1
-            case '"': self.string(self.interpreter)
+            case '"': self.string(self.lox)
             case char if char.isdigit(): self.number()
             case char if char.isalpha(): 
                 self.identifier()
             case '_':
                 self.identifier()
             case _: 
-                self.interpreter.error(self.line, "Unexpected Character.")
+                self.lox.error(self.line, "Unexpected Character.")
 
-    def string(self, interpreter: Interpreter):
+    def string(self, lox: Lox):
         while (self.peek() != '"' and not self.isAtEnd()):
             if self.peek() == '\n': 
                 line+=1
             self.advance()
         if (self.isAtEnd()):
-            interpreter.error(self.line, "Unterminated String")
+            lox.error(self.line, "Unterminated String")
             return 
         self.advance()
         value = self.source[self.start + 1: self.current -1]

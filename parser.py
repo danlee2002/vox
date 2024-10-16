@@ -1,5 +1,5 @@
 from typing import Union
-from interpreter import Interpreter
+from lox import Lox
 from tokens import TokenType, Tokens
 from Expr import Expr, Binary, Grouping, Literal, Unary
 
@@ -8,7 +8,7 @@ class Parser:
     def __init__(self, tokens: list[Tokens]):
         self.tokens = tokens
         self.current = 0
-        self.interpreter = Interpreter()
+        self.lox = Lox()
     
     def parse(self) -> Union[Expr, None]:
         try:
@@ -99,12 +99,12 @@ class Parser:
             expr = self.expression()
             self._consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.")
             return Grouping(expr)
-        self.interpreter.parse_error(self.peek(), 'Expect Expression.')
+        self.lox.parse_error(self.peek(), 'Expect Expression.')
 
     def _consume(self, type: TokenType, message: str) -> Union[Tokens,None]:
         if self.check(type):
             return self.advance()
-        self.interpreter.parse_error(self.peek(),message)
+        self.lox.parse_error(self.peek(),message)
         
     def synchronize(self):
         self.advance()
