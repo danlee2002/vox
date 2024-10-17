@@ -1,4 +1,4 @@
-from ast import Expression
+import Stmt
 from tokens import TokenType, Tokens
 import Expr
 from typing import Union, Any
@@ -65,7 +65,14 @@ class Interpreter:
                 return left == right 
             case _:
                 return None 
+
+    def visit_expression(self, stmt: Stmt.Expression):
+       self.evaluate(stmt.expression) 
     
+    def visit_print(self, stmt: Stmt.Print):
+        value = self.evaluate(stmt.expression)
+        sys.stdout.write(f'{self.stringify(value)}\n')
+
     def check_binary(self, operator: Tokens, left: Any, right: Any):
         if isinstance(left, float) and isinstance(right, float):
             return 
@@ -83,11 +90,22 @@ class Interpreter:
             return object
         return True
 
-    def interpret(self, expr: Expression, Lox):
+    def interpret(self, statements: list[Stmt.Stmt], lox):
         try:
-            value = self.evaluate(expr)
-            sys.stdout.write(f'{value}\n')
+            for statement in statements:
+                statement.accept(self)
+            
         except RuntimeException as e:
-            Lox.run_time_error(e)
-            
-            
+            lox.run_time_error(e)
+    
+    def stringify(self, object: object) -> str:
+        if not object:
+            return "nil"
+        if isinstance(object, str):
+            return object
+        if isinstance(object,float):
+            text = str(object)
+            if text.endswith('.0'): 
+                return text[:-2]
+            return text 
+        return str(object)

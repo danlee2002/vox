@@ -1,5 +1,6 @@
 from typing import Union
 from lox import Lox
+from Stmt import Stmt,Print,Expression
 from tokens import TokenType, Tokens
 from Expr import Expr, Binary, Grouping, Literal, Unary
 
@@ -10,12 +11,27 @@ class Parser:
         self.current = 0
         self.lox = Lox()
     
-    def parse(self) -> Union[Expr, None]:
-        try:
-            return self.expression()
-        except SyntaxError:
-            return None
-        
+    def parse(self) -> Union[list[Stmt],None]:
+        statements = []
+        while not self.is_at_end():
+            statements.append(self.statement())
+        return statements
+    
+    def statement(self):
+        if self.verify(TokenType.PRINT):
+            return self.print_statement()
+        return self.expression_statement()
+
+    def print_statement(self): 
+        value = self.expression()
+        self._consume(TokenType.SEMICOLON, 'Except ";" after value.')
+        return Print(value)
+    
+    def expression_statement(self):
+        value = self.expression()
+        self._consume(TokenType.SEMICOLON, 'Except ";" after value.')
+        return Expression(value)
+
     def expression(self) -> Union[Expr, None]:
         return self.equality()
     
@@ -109,9 +125,9 @@ class Parser:
     def synchronize(self):
         self.advance()
         while not self.is_at_end():
-            if self.previous.type() == TokenType.SEMICOLON:
+            if self.previous().type == TokenType.SEMICOLON:
                 return 
-            match self.peek.type:
+            match self.peek().type:
                 case TokenType.CLASS:
                     return 
                 case TokenType.FUN:

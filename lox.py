@@ -14,22 +14,23 @@ class Lox:
         from parser import Parser
         scan= Scanner(string, self)
         tokens = scan.scanTokens()
+        # for token in tokens:
+        #     print(token)
         parser = Parser(tokens)
-        expression = parser.parse()
+        statements = parser.parse()
         interpreter = Interpreter()
-        interpreter.interpret(expression,self)
-        print(type(expression))
+        interpreter.interpret(statements,lox)
         if self.haderror:
             return 
-        printer = AstPrinter()
-        sys.stdout.write(f'{printer.print(expression)}\n')
+        # printer = AstPrinter()
+        # sys.stdout.write(f'{printer.print(statements)}\n')
         
     def error(self, line: int, message: str):
         self.report(line, "",message)
 
     def parse_error(self, token: Tokens, message: str):
         if token.type == TokenType.EOF:
-            self.report(token.line, ' at end', message)
+            self.report(token.line, 'at end', message)
         else:
             self.report(token.line, f'at "{token.lexme}"', message)
     
