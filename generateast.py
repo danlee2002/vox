@@ -45,14 +45,17 @@ if __name__ == '__main__':
     
     directory = sys.argv[1]
     # generates expression types 
-    # define_ast(directory, 'Expr', [
-    #     'Binary   : LEFT Union[Expr,None], OPERATOR Tokens, RIGHT Union[Expr,None]',
-    #     'Grouping : EXPRESSION Union[Expr,None]',
-    #     'Literal  : VALUE Any', 
-    #     'Unary    : OPERATOR Tokens, RIGHT Union[Expr,None]'
-    # ])
+    define_ast(directory, 'Expr', [
+        'Assign   : NAME Tokens, Value Expr',
+        'Binary   : LEFT Union[Expr,None], OPERATOR Tokens, RIGHT Union[Expr,None]',
+        'Grouping : EXPRESSION Union[Expr,None]',
+        'Literal  : VALUE object', 
+        'Unary    : OPERATOR Tokens, RIGHT Union[Expr,None]',
+        'Variable : NAME Tokens'    
+    ])
     # generates statements
     define_ast(directory, "Stmt", [
         "Expression: Expression Expr.Expr",
-        "Print : Expression Expr.Expr"
+        "Print : Expression Expr.Expr",
+        "Var : NAME Tokens, Initializer Expr.Expr"
     ])

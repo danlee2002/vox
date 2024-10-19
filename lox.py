@@ -8,6 +8,7 @@ from interpreter import Interpreter, RuntimeException
 class Lox:
     def __init__(self):
         self.haderror = False 
+        self.interpreter = Interpreter()
         
     def run(self, string):
         from scanner import Scanner
@@ -18,8 +19,7 @@ class Lox:
         #     print(token)
         parser = Parser(tokens)
         statements = parser.parse()
-        interpreter = Interpreter()
-        interpreter.interpret(statements,lox)
+        self.interpreter.interpret(statements,lox)
         if self.haderror:
             return 
         # printer = AstPrinter()
@@ -28,12 +28,6 @@ class Lox:
     def error(self, line: int, message: str):
         self.report(line, "",message)
 
-    def parse_error(self, token: Tokens, message: str):
-        if token.type == TokenType.EOF:
-            self.report(token.line, 'at end', message)
-        else:
-            self.report(token.line, f'at "{token.lexme}"', message)
-    
     def run_time_error(self, error: RuntimeException):
          sys.stdout.write(f'{error}\n[line {error.token.line}]')
          self.haderror = True 

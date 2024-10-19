@@ -1,8 +1,9 @@
 from typing import Union
 from lox import Lox
-from Stmt import Stmt,Print,Expression
+import Stmt
 from tokens import TokenType, Tokens
-from Expr import Expr, Binary, Grouping, Literal, Unary
+import Expr
+from error import ParseError
 
 class Parser:
 
@@ -11,11 +12,47 @@ class Parser:
         self.current = 0
         self.lox = Lox()
     
-    def parse(self) -> Union[list[Stmt],None]:
+    def parse(self) -> Union[list[Stmt.Stmt],None]:
         statements = []
         while not self.is_at_end():
-            statements.append(self.statement())
+            statements.append(self.declaration())
         return statements
+
+    def expression(self) -> Union[Expr.Expr, None]:
+        return self.assignment()
+    
+    def assignment(self):
+        expr = self.equality()
+        if self.verify(TokenType.EQUAL):
+            equals = self.previous()
+            value = self.assignment()
+            if isinstance(expr, Expr.Variable):
+                name = expr.name
+                return Expr.Assign(name, value)
+            self.error(equals,value)
+        return expr
+    
+    def declaration(self):
+        try:
+            if self.verify(TokenType.VAR):
+                return self.var_declaration()
+            return self.statement()
+        except ParseError: 
+            self.synchronize()
+    
+    
+    def var_declaration(self):
+        name = self._consume(TokenType.IDENTIFIER, 'Expect Variable Name')
+        initializer = None 
+        if self.verify(TokenType.EQUAL):
+            initializer = self.expression()
+        self._consume(TokenType.SEMICOLON, 'Expect ";" after variable declaration.')
+        return Stmt.Var(name, initializer)
+    
+    def error(self, token: Tokens, message: str):
+        self.lox.error(token.line, message)
+        raise ParseError()
+
     
     def statement(self):
         if self.verify(TokenType.PRINT):
@@ -24,23 +61,22 @@ class Parser:
 
     def print_statement(self): 
         value = self.expression()
-        self._consume(TokenType.SEMICOLON, 'Except ";" after value.')
-        return Print(value)
+        self._consume(TokenType.SEMICOLON, 'Excpect ";" after value.')
+        return Stmt.Print(value)
     
     def expression_statement(self):
         value = self.expression()
-        self._consume(TokenType.SEMICOLON, 'Except ";" after value.')
-        return Expression(value)
+        self._consume(TokenType.SEMICOLON, 'Expect ";" after value.')
+        return Stmt.Expression(value)
 
-    def expression(self) -> Union[Expr, None]:
-        return self.equality()
+        
     
-    def equality(self) -> Union[Expr, None]:
+    def equality(self) -> Union[Expr.Expr, None]:
         expr = self.comparison()
         while self.verify(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL):
             operator = self.previous()
             right = self.comparison()
-            expr = Binary(expr, operator, right)
+            expr = Expr.Binary(expr, operator, right)
         return expr 
 
     def verify(self,*types: TokenType) -> bool:
@@ -69,58 +105,60 @@ class Parser:
     def previous(self) -> Tokens:
         return self.tokens[self.current-1]
     
-    def comparison(self) -> Union[Expr, None]:
+    def comparison(self) -> Union[Expr.Expr, None]:
         expr = self.term()
         while self.verify(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL):
             operator = self.previous()
             right = self.term()
-            expr = Binary(expr, operator, right)
+            expr = Expr.Binary(expr, operator, right)
         return expr 
     
-    def term(self) -> Union[Expr, None]:
+    def term(self) -> Union[Expr.Expr, None]:
         expr = self.factor()
         while self.verify(TokenType.MINUS, TokenType.PLUS):
             operator = self.previous()
             right = self.factor()
-            expr = Binary(expr, operator, right)
+            expr = Expr.Binary(expr, operator, right)
         return expr
     
-    def factor(self) -> Union[Expr, None]:
+    def factor(self) -> Union[Expr.Expr, None]:
         expr = self.unary()
         while self.verify(TokenType.SLASH, TokenType.STAR):
             operator = self.previous()
             right = self.unary()
-            expr =  Binary(expr, operator, right) 
+            expr =  Expr.Binary(expr, operator, right) 
         return expr
 
-    def unary(self) ->  Union[Expr, None]:
+    def unary(self) ->  Union[Expr.Expr, None]:
         if self.verify(TokenType.BANG, TokenType.MINUS):
             operator = self.previous()
             right = self.unary()
-            expr =  Unary(operator, right) 
+            expr =  Expr.Unary(operator, right) 
             return expr
         return self.primary()
     
-    def primary(self) -> Union[Expr, None]:
+    def primary(self) -> Union[Expr.Expr, None]:
         if self.verify(TokenType.FALSE):
-            return Literal(False)
+            return Expr.Literal(False)
         if self.verify(TokenType.TRUE):
-            return Literal(True)
+            return Expr.Literal(True)
         if self.verify(TokenType.NIL):
-            return Literal(None)
+            return Expr.Literal(None)
         if self.verify(TokenType.NUMBER, TokenType.STRING):
             val = self.previous()
-            return Literal(float(val.literal) if val.type == TokenType.NUMBER else val.literal)
+            return Expr.Literal(float(val.literal) if val.type == TokenType.NUMBER else val.literal)
         if self.verify(TokenType.LEFT_PAREN):
             expr = self.expression()
             self._consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.")
-            return Grouping(expr)
-        self.lox.parse_error(self.peek(), 'Expect Expression.')
+            return Expr.Grouping(expr)
+        if self.verify(TokenType.IDENTIFIER):
+            return Expr.Variable(self.previous())
+        self.error(self.peek(), 'Expect Expression.')
 
     def _consume(self, type: TokenType, message: str) -> Union[Tokens,None]:
         if self.check(type):
             return self.advance()
-        self.lox.parse_error(self.peek(),message)
+        self.error(self.peek(),message)
         
     def synchronize(self):
         self.advance()

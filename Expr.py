@@ -6,6 +6,14 @@ class Expr(ABC):
 	@abstractmethod
 	def accept(self, visitor: "Any") -> str:
 		pass
+class Assign(Expr):
+	def __init__(self, name: Tokens, value: Expr):
+		self.name = name
+		self.value = value
+
+	def accept(self, visitor: "Any")-> str:
+		return visitor.visit_assign(self)
+
 class Binary(Expr):
 	def __init__(self, left: Union[Expr,None], operator: Tokens, right: Union[Expr,None]):
 		self.left = left
@@ -23,7 +31,7 @@ class Grouping(Expr):
 		return visitor.visit_grouping(self)
 
 class Literal(Expr):
-	def __init__(self, value: Any):
+	def __init__(self, value: object):
 		self.value = value
 
 	def accept(self, visitor: "Any")-> str:
@@ -36,4 +44,11 @@ class Unary(Expr):
 
 	def accept(self, visitor: "Any")-> str:
 		return visitor.visit_unary(self)
+
+class Variable(Expr):
+	def __init__(self, name: Tokens):
+		self.name = name
+
+	def accept(self, visitor: "Any")-> str:
+		return visitor.visit_variable(self)
 

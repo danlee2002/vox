@@ -3,17 +3,21 @@ from tokens import TokenType, Tokens
 import Expr
 from typing import Union, Any
 import sys
-
-class RuntimeException(Exception):
-    def __init__(self, token: Tokens, message: str):
-        super().__init__(message)
-        self.token = token
-
+from error import RuntimeException
+from env import Env
 class Interpreter:
+    def __init__(self):
+        self.env = Env()
+        
     def evaluate(self, expr: Union[Expr.Expr,None]) -> Any:
         if not expr:
             return None 
         return expr.accept(self)
+    
+    def visit_assign(self, expr: Expr.Assign):
+        value = self.evaluate(expr.value)
+        self.env.assign(expr.name,value)
+        return value 
     
     def visit_literal(self, expr: Expr.Literal):
         return expr.value
@@ -29,6 +33,21 @@ class Interpreter:
             case TokenType.BANG:
                 return not self.is_truthy(right)
         return None 
+    
+    def visit_var(self, stmt: Stmt.Var):
+        value = None 
+        # print(stmt.initializer)
+        if stmt.initializer:
+            value = self.evaluate(stmt.initializer)
+            print(value)
+        
+        self.env.define(stmt.name.lexme, value)
+        # print(self.env.values)
+
+    def visit_variable(self, expr: Expr.Variable):
+        return self.env.get(expr.name)
+        
+
 
     def visit_binary(self, expr: Expr.Binary):
         left = self.evaluate(expr.left)
